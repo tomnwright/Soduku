@@ -45,6 +45,7 @@ class s9Grid:
             cell.append(self[x,y])
         return cell
     
+    
     def getRow (self, row):
 
         return self.grid[row]
@@ -59,10 +60,73 @@ class s9Grid:
         b3 = value in self.getRow(key[1])
         return not (b1 or b2 or b3)
 
+        
+    def linear(self):
+        out = []
+        for i in self.grid:
+            for j in i:
+                out.append(j)
+        return out
+
+    def MustGo(self):
+
+        for c in range(9): #9 cells
+            cell = self.getCell(c)
+
+            for n in range(1,10): #each number
+                if n in cell:
+                    continue
+                
+                spaces = []
+                for key in self.getCellKeys(c):
+                    if self[key] == 0:
+                        spaces.append(key)
+                
+                possible = []
+                for s in spaces:
+                    inColumn = n in self.getColumn(s[0])
+                    inRow = n in self.getRow(s[1])
+                    if not (inColumn or inRow):
+                        possible.append(s)
+
+                if len(possible) == 1:
+                    foundKey = possible[0]
+                    self.grid[foundKey] = n
+                    return foundKey
+        return
+                    
+
+                
+
+                
+
+    @staticmethod
+    def getCellKeys (i):
+        keys = []
+        for j in range(9):
+            #elements
+            x =  3 * (i % 3) + (j % 3)
+            y =  3 * (i // 3) + (j // 3)
+
+            keys.append((x,y,))
+        return keys
+
     @staticmethod
     def cellNumber(x, y):
-        return 3 * (y // 3) + (x // 3)
-        #j = 3 * (y % 3) + (x % 3), see getCell
+        return s9Grid.XYtocell(x,y,)[0]
+
+    @staticmethod
+    def XYtocell(x,y,):
+        i = 3 * (y // 3) + (x // 3)
+        j = 3 * (y % 3) + (x % 3)
+        return (i,j,)
+    @staticmethod
+    def celltoXY(i, j):
+        x =  3 * (i % 3) + (j % 3)
+        y =  3 * (i // 3) + (j // 3)
+        return (x,y,)
+
+
 
 
 def testKey(grid, key):
@@ -86,38 +150,57 @@ for i in range(9):
         k = (i,j,)
         keysRaw.append(k)
 
-count = 0
-best = 0
-while True:
+with open('log.txt', 'a') as logFile:
 
-    grid = s9Grid()
-    keys = keysRaw.copy()
-     
-    buffer = []
-    success_count = 0
-    while not grid.solved():
-        key = random.choice(keys)
-        if key in buffer:
-            continue
+    count = 0
+    best = 0
+    while True:
 
-        test = testKey(grid,key)
-        if (test):
+        grid = s9Grid()
+        keys = keysRaw.copy()
+        
+        buffer = []
+        success_count = 0
+        while not grid.solved():
+            foundMust = grid.MustGo()
+            if foundMust:
+                print('FOUND MUST')
+                success_count += 1
+                buffer = []
+                keys.remove(foundMust)
+                continue
+            else:
+                print('didnt')
+
+            key = random.choice(keys)
+            if key in buffer:
+                continue
+
+            test = testKey(grid,key)
+            if (test):
+                
+                success_count += 1
+                grid[key] = test
+                buffer = []
+                keys.remove(key)
+
+            else:
+
+                buffer.append(key)
+                if set(buffer) == set(keys):
+                    break
+        count += 1
+        logFile.write(str(success_count) + '\n')
+
+        print('Grid no.{}, {} spaces filled'.format(count, success_count))
+
+
             
-            success_count += 1
-            grid[key] = test
-            buffer = []
-            keys.remove(key)
 
-        else:
+        
+        
+        if grid.solved():
+            break
 
-            buffer.append(key)
-            if set(buffer) == set(keys):
-                break
-    count += 1
-    print(grid, end = '\n\n\n')
-    
-    
-    if grid.solved() or count > 50:
-        break
 print('SOLVED')
 input()
